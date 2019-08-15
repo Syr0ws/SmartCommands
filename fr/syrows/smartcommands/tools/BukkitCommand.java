@@ -48,10 +48,10 @@ public class BukkitCommand extends Command {
             if(args.length == 0) args = new String[]{""};
 
             if(args.length == 2 && args[0].equalsIgnoreCase("help") && Utils.isInt(args[1])) {
-                issuer.sendHelp(sender, this.command, label, args, Integer.parseInt(args[1]));
+                issuer.sendHelp(label, args, Integer.parseInt(args[1]), true);
                 return true;
             }
-            issuer.sendHelp(sender, this.command, label, args, 1);
+            issuer.sendHelp(label, args, 1, false);
         }
         return executed;
     }
