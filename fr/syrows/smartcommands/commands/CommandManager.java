@@ -97,7 +97,7 @@ public class CommandManager {
         InputStream stream = this.api.getPlugin().getResource(commandResourcePath);
 
         if(stream == null)
-            throw new NullPointerException(String.format("Cannot find the resource commands_text.json at %s", commandResourcePath));
+            throw new NullPointerException(String.format("Cannot find the resource commands_contents.json at %s", commandResourcePath));
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         Type type = new TypeToken<Map<String, SmartCommand>>(){}.getType();
@@ -127,7 +127,7 @@ public class CommandManager {
 
         Plugin plugin = this.api.getPlugin();
 
-        Path path = Paths.get(plugin.getDataFolder() + File.separator + "commands_text.json");
+        Path path = Paths.get(plugin.getDataFolder() + File.separator + "commands_contents.json");
 
         if(!Files.exists(path) && this.api.canCreateContentsFile()) {
             FileUtils.createDirectory(plugin.getDataFolder().toPath());
@@ -150,7 +150,7 @@ public class CommandManager {
                 InputStream stream = plugin.getResource(contentsResourcePath);
 
                 if(stream == null)
-                    throw new NullPointerException(String.format("Cannot find the resource commands_text.json at %s", contentsResourcePath));
+                    throw new NullPointerException(String.format("Cannot find the resource commands_contents.json at %s", contentsResourcePath));
 
                 reader = new BufferedReader(new InputStreamReader(stream));
 

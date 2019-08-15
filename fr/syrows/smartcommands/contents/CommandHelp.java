@@ -22,11 +22,11 @@ public class CommandHelp {
 
         for(String argument : this.format) {
 
-            String text = "", showText = "";
+            String text, showText;
 
             switch (argument) {
                 default:
-                    text = Utils.parseColors(argument + " ").replace("%page%", String.valueOf(page));
+                    text = argument.equals("%page%") ? String.valueOf(page) : Utils.parseColors(argument);
                     base.addExtra(new EasyComponent().setText(text));
                     break;
                 case "%previous_page%":
@@ -40,7 +40,7 @@ public class CommandHelp {
 
                     if(!showText.equals("")) previousPage.showText(showText);
 
-                    if(page != 1) previousPage.runCommand(String.format("%s help %d", command.getName(), page + 1));
+                    if(page != 1) previousPage.runCommand(String.format("%s help %d", command.getName(), page - 1));
 
                     base.addExtra(previousPage);
                     break;
@@ -57,7 +57,7 @@ public class CommandHelp {
 
                     if(!showText.equals("")) nextPage.showText(showText);
 
-                    if(page != 1) nextPage.runCommand(String.format("%s help %d", command.getName(), page - 1));
+                    if(!isLast) nextPage.runCommand(String.format("%s help %d", command.getName(), page + 1));
 
                     base.addExtra(nextPage);
                     break;

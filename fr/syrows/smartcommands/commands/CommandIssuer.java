@@ -42,19 +42,21 @@ public class CommandIssuer {
         this.sender.sendMessage(Utils.parseColors(message));
     }
 
-    public void sendHelp(CommandSender sender, SmartCommand command, String label, String[] args, int page) {
+    public void sendHelp(String label, String[] args, int page, boolean forcePagination) {
 
-        if(!command.useUsages()) return;
+        if(!this.command.useUsages()) return;
 
-        CommandUsage commandUsage = command.getCommandUsage();
+        if(page <= 0) page = 1;
+
+        CommandUsage commandUsage = this.command.getCommandUsage();
 
         List<Usage> allUsages = commandUsage.findUsages(args);
 
-        if(!(sender instanceof Player)) sendConsoleHelp(sender, command, allUsages, label, page);
-        else sendPlayerHelp((Player) sender, command, allUsages, label, page);
+        if(!(this.sender instanceof Player)) sendConsoleHelp(allUsages, label, page);
+        else sendPlayerHelp(allUsages, label, page, forcePagination);
     }
 
-    private void sendConsoleHelp(CommandSender sender, SmartCommand command, List<Usage> usages, String label, int page) {
+    private void sendConsoleHelp(List<Usage> usages, String label, int page) {
 
         List<String> consoleMessages = new ArrayList<>();
 
@@ -62,7 +64,7 @@ public class CommandIssuer {
                 .filter(usage -> usage.getConsoleMessage() != null)
                 .forEach(usage -> consoleMessages.add(usage.getConsoleMessage().replace("%command%", label)));
 
-        if(!command.useHelp()) {
+        if(!this.command.useHelp()) {
             consoleMessages.forEach(sender::sendMessage);
             return;
         }
@@ -74,13 +76,13 @@ public class CommandIssuer {
 
         for(int i = index; i < index + commandHelp.getCommandsPerPage(); i++) {
 
-            sender.sendMessage(consoleMessages.get(i));
+            this.sender.sendMessage(consoleMessages.get(i));
 
             if(i + 1 == consoleMessages.size()) break;
         }
     }
 
-    private void sendPlayerHelp(Player player, SmartCommand command, List<Usage> usages, String label, int page) {
+    private void sendPlayerHelp(List<Usage> usages, String label, int page, boolean forcePagination) {
 
         List<TextComponent> components = new ArrayList<>();
 
@@ -88,41 +90,48 @@ public class CommandIssuer {
 
             String permission = usage.getPermission();
 
-            if(permission != null && !player.hasPermission(permission)) continue;
+            if(permission != null && !getPlayer().hasPermission(permission)) continue;
 
             TextComponent component = usage.getUsageAsTextComponent(label);
 
             if(component != null) components.add(component);
         }
 
-        if(!command.useHelp()) {
-            components.forEach(component -> player.spigot().sendMessage(component));
+        if(!this.command.useHelp()) {
+            components.forEach(component -> getPlayer().spigot().sendMessage(component));
             return;
         }
         CommandHelp commandHelp = this.command.getCommandHelp();
 
         int index = page == 1 ? 0 : commandHelp.getCommandsPerPage() * (page - 1);
 
-        if(index >= usages.size()) index = 0;
+        if(index >= usages.size()) {
+            index = 0;
+            page = 1;
+        }
 
-        boolean higherThanMinOfCommands = usages.size() - index >= commandHelp.getMinOfCommands();
+        boolean higherThanMinOfCommands = forcePagination || usages.size() - index >= commandHelp.getMinOfCommands();
 
-        if(higherThanMinOfCommands) player.sendMessage(Utils.parseColors(commandHelp.getTop()));
+        String top = commandHelp.getTop(), bottom = commandHelp.getBottom();
+
+        if(higherThanMinOfCommands && top != null) getPlayer().sendMessage(Utils.parseColors(top));
 
         for(int i = index; i < index + commandHelp.getCommandsPerPage(); i++) {
 
-            player.spigot().sendMessage(components.get(i));
+            if(i >= components.size()) break;
+
+            getPlayer().spigot().sendMessage(components.get(i));
 
             if(i + 1 == components.size()) break;
         }
 
         if(higherThanMinOfCommands) {
 
-            player.sendMessage(" ");
+            getPlayer().sendMessage(" ");
 
-            player.spigot().sendMessage(commandHelp.buildPagination(command, components, page));
+            if(bottom != null) getPlayer().spigot().sendMessage(commandHelp.buildPagination(this.command, components, page));
 
-            player.sendMessage(Utils.parseColors(commandHelp.getBottom()));
+            getPlayer().sendMessage(Utils.parseColors(commandHelp.getBottom()));
         }
     }
 
