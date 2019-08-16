@@ -22,11 +22,15 @@ public class FileUtils {
 
         try {
 
+            Logger.log(Level.INFO, "Reading resource file...");
+
             StringBuilder sb = new StringBuilder();
             String l;
 
             while((l = reader.readLine()) != null)
                 sb.append(l).append("\n");
+
+            Logger.log(Level.INFO, "Writing data...");
 
             BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile()));
 
@@ -34,7 +38,11 @@ public class FileUtils {
             writer.flush();
             writer.close();
 
+            Logger.log(Level.INFO, String.format("File %s was created.", path.getFileName()));
+
         } catch (IOException e) {
+
+            Logger.log(Level.SEVERE, String.format("Cannot create file %s.", path.getFileName()));
 
             e.printStackTrace();
         }
@@ -48,7 +56,11 @@ public class FileUtils {
 
             Files.createDirectory(path);
 
+            Logger.log(Level.INFO, String.format("Directory %s was created.", path.getFileName()));
+
         } catch (IOException e) {
+
+            Logger.log(Level.SEVERE, String.format("Cannot create directory %s.", path.getFileName()));
 
             e.printStackTrace();
         }
