@@ -84,7 +84,7 @@ public class SmartCommandsAPI {
 
         public ApiBuilder() {
             this.commandResourcePath = "commands.json";
-            this.contentsResourcePath = "commands_contents.json";
+            this.contentsResourcePath = "command_contents.json";
             this.debug = false;
             this.parseColors = true;
             this.useContentsFile = true;
@@ -108,12 +108,12 @@ public class SmartCommandsAPI {
         }
 
         public ApiBuilder setCommandResourceFolderPath(String resourcePath) {
-            this.commandResourcePath = resourcePath + "commands.json";
+            this.commandResourcePath = resourcePath + "/commands.json";
             return this;
         }
 
         public ApiBuilder setContentsResourceFolderPath(String resourcePath) {
-            this.contentsResourcePath = resourcePath + "commands_contents.json";
+            this.contentsResourcePath = resourcePath + "/command_contents.json";
             return this;
         }
 
