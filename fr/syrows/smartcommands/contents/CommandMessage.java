@@ -60,7 +60,7 @@ public class CommandMessage {
             if(!current.has(key))
                 throw new NullPointerException(String.format("The element %s was not found at the path %s", key, path));
 
-            JsonElement element = object.get(key);
+            JsonElement element = current.get(key);
 
             if(!element.isJsonObject()) {
 
