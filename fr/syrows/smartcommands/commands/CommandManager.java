@@ -9,7 +9,6 @@ import fr.syrows.smartcommands.contents.CommandMessage;
 import fr.syrows.smartcommands.contents.CommandUsage;
 import fr.syrows.smartcommands.tools.BukkitCommand;
 import fr.syrows.smartcommands.utils.FileUtils;
-import fr.syrows.smartcommands.utils.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandMap;
 import org.bukkit.plugin.Plugin;
@@ -38,7 +37,7 @@ public class CommandManager {
 
     public void registerCommand(String name, CommandExecutor executor) {
 
-        Logger.log(Level.INFO, String.format("Registering %s command...", name));
+        this.api.getLogger().log(Level.INFO, String.format("Registering %s command...", name));
 
         if(this.commandMap == null)
             throw new IllegalStateException("CommandMap cannot be null. Please, initialize the API before registering commands.");
@@ -56,7 +55,7 @@ public class CommandManager {
 
         this.commandMap.register(name, bukkitCommand);
 
-        Logger.log(Level.INFO, String.format("Command %s registered.", name));
+        this.api.getLogger().log(Level.INFO, String.format("Command %s registered.", name));
     }
 
     public boolean exist(String name) {
@@ -69,7 +68,7 @@ public class CommandManager {
 
     private void setupCommandMap() {
 
-        Logger.log(Level.INFO, "Initializing CommandMap...");
+        this.api.getLogger().log(Level.INFO, "Initializing CommandMap...");
 
         try {
 
@@ -78,11 +77,11 @@ public class CommandManager {
 
             this.commandMap = (CommandMap) commandMap.get(Bukkit.getServer());
 
-            Logger.log(Level.INFO, "CommandMap initialized.");
+            this.api.getLogger().log(Level.INFO, "CommandMap initialized.");
 
         } catch (NoSuchFieldException | IllegalAccessException e) {
 
-            Logger.log(Level.SEVERE, "Cannot initialize CommandMap.");
+            this.api.getLogger().log(Level.SEVERE, "Cannot initialize CommandMap.");
 
             e.printStackTrace();
         }
@@ -90,7 +89,7 @@ public class CommandManager {
 
     private void loadCommands() {
 
-        Logger.log(Level.INFO, "Loading commands...");
+        this.api.getLogger().log(Level.INFO, "Loading commands...");
 
         String commandResourcePath = this.api.getCommandResourcePath();
 
@@ -102,7 +101,7 @@ public class CommandManager {
         BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
         Type type = new TypeToken<Map<String, SmartCommand>>(){}.getType();
 
-        Map<String, SmartCommand> commands = this.api.getGson().fromJson(reader, type);
+        Map<String, SmartCommand> commands = SmartCommandsAPI.gson.fromJson(reader, type);
 
         if(commands == null) return;
 
@@ -110,7 +109,7 @@ public class CommandManager {
 
         this.commands = commands;
 
-        Logger.log(Level.INFO, String.format("%d command%s loaded.", commands.size(), commands.size() <= 1 ? "" : "s"));
+        this.api.getLogger().log(Level.INFO, String.format("%d command%s loaded.", commands.size(), commands.size() <= 1 ? "" : "s"));
 
         try {
             reader.close();
@@ -123,23 +122,22 @@ public class CommandManager {
 
         if(!this.api.useContentsFile()) return;
 
-        Logger.log(Level.INFO, "Loading command contents...");
+        this.api.getLogger().log(Level.INFO, "Loading command contents...");
 
         Plugin plugin = this.api.getPlugin();
 
         Path path = Paths.get(plugin.getDataFolder() + File.separator + "commands_contents.json");
 
         if(!Files.exists(path) && this.api.canCreateContentsFile()) {
-            FileUtils.createDirectory(plugin.getDataFolder().toPath());
-            FileUtils.createFileFromResource(plugin, path, this.api.getContentsResourcePath(), false);
+            FileUtils.createDirectory(this.api, plugin.getDataFolder().toPath());
+            FileUtils.createFileFromResource(this.api, path, this.api.getContentsResourcePath(), false);
         }
-        Gson gson = this.api.getGson();
 
         Map<String, JsonObject> commandContents = new HashMap<>();
 
         try {
 
-            Logger.log(Level.INFO, "Loading data...");
+            this.api.getLogger().log(Level.INFO, "Loading data...");
 
             BufferedReader reader;
 
@@ -159,21 +157,21 @@ public class CommandManager {
                 reader = new BufferedReader(new FileReader(path.toFile()));
             }
             Type type = new TypeToken<Map<String, JsonObject>>(){}.getType();
-            Map<String, JsonObject> contents = gson.fromJson(reader, type);
+            Map<String, JsonObject> contents = SmartCommandsAPI.gson.fromJson(reader, type);
 
             if(contents != null) commandContents = contents;
 
-            Logger.log(Level.INFO, "Data loaded.");
+            this.api.getLogger().log(Level.INFO, "Data loaded.");
 
             reader.close();
 
         } catch (IOException e) {
 
-            Logger.log(Level.SEVERE, "Cannot load command contents.");
+            this.api.getLogger().log(Level.SEVERE, "Cannot load command contents.");
 
             e.printStackTrace();
         }
-        Logger.log(Level.INFO, "Assigning data...");
+        this.api.getLogger().log(Level.INFO, "Assigning data...");
 
         for(Map.Entry<String, JsonObject> entry : commandContents.entrySet()) {
 
@@ -186,7 +184,7 @@ public class CommandManager {
             SmartCommand command = getCommand(name);
 
             if(object.has("commandHelp"))
-                command.setCommandHelp(SmartCommandsAPI.getApi().getGson().fromJson(object.get("commandHelp"), CommandHelp.class));
+                command.setCommandHelp(SmartCommandsAPI.gson.fromJson(object.get("commandHelp"), CommandHelp.class));
 
             if(object.has("commandUsage"))
                 command.setCommandUsage(new CommandUsage(object.get("commandUsage").getAsJsonObject()));
@@ -194,18 +192,18 @@ public class CommandManager {
             if(object.has("commandMessage"))
                 command.setCommandMessage(new CommandMessage(object.get("commandMessage").getAsJsonObject()));
         }
-        Logger.log(Level.INFO, "Data assigned.");
+        this.api.getLogger().log(Level.INFO, "Data assigned.");
 
-        Logger.log(Level.INFO, "Command contents loaded.");
+        this.api.getLogger().log(Level.INFO, "Command contents loaded.");
     }
 
     public void reloadCommandContents() {
 
-        Logger.log(Level.INFO, "Starting command contents reload.");
+        this.api.getLogger().log(Level.INFO, "Starting command contents reload.");
 
         loadCommandContents();
 
-        Logger.log(Level.INFO, "All command contents were reloaded.");
+        this.api.getLogger().log(Level.INFO, "All command contents were reloaded.");
     }
 
     public static CommandManager registerNewCommandManager(SmartCommandsAPI api) {
@@ -213,7 +211,7 @@ public class CommandManager {
         if(api.getCommandManager() != null)
             throw new IllegalStateException("CommandManager is already registered.");
 
-        Logger.log(Level.INFO, "Registering new CommandManager...");
+        api.getLogger().log(Level.INFO, "Registering new CommandManager...");
 
         CommandManager commandManager = new CommandManager(api);
 
@@ -221,7 +219,7 @@ public class CommandManager {
         commandManager.loadCommands();
         commandManager.loadCommandContents();
 
-        Logger.log(Level.INFO, "CommandManager registered.");
+        api.getLogger().log(Level.INFO, "CommandManager registered.");
 
         return commandManager;
     }
