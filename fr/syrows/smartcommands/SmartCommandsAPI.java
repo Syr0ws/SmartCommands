@@ -10,16 +10,15 @@ import java.util.logging.Level;
 
 public class SmartCommandsAPI {
 
+    public static final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+
     private String commandResourcePath, contentsResourcePath;
-    private boolean debug, parseColors, useContentsFile, createContentsFile;
-    private char colorChar;
+    private boolean debug, useContentsFile, createContentsFile;
 
     private Plugin plugin;
-    private Gson gson;
+    private Logger logger;
 
     private CommandManager commandManager;
-
-    private static SmartCommandsAPI api;
 
     public String getCommandResourcePath() {
         return this.commandResourcePath;
@@ -33,77 +32,47 @@ public class SmartCommandsAPI {
         return this.debug;
     }
 
-    public boolean isColorParserEnabled() {
-        return this.parseColors;
-    }
-
     public boolean useContentsFile() { return this.useContentsFile; }
 
     public boolean canCreateContentsFile() { return this.createContentsFile; }
-
-    public char getColorChar() {
-        return this.colorChar;
-    }
 
     public Plugin getPlugin() {
         return this.plugin;
     }
 
-    public Gson getGson() {
-        return this.gson;
-    }
+    public Logger getLogger() { return this.logger; }
 
     public CommandManager getCommandManager() {
         return this.commandManager;
     }
 
-    public void initialize(Plugin plugin) {
-
-        if(SmartCommandsAPI.api != null)
-            throw new IllegalStateException("SmartCommandsAPI is already registered.");
+    private void initialize(Plugin plugin) {
 
         this.plugin = plugin;
+        this.logger = new Logger(this);
 
-        SmartCommandsAPI.api = this;
+        this.logger.log(Level.INFO, "Initializing SmartCommands API...");
 
-        Logger.log(Level.INFO, "Initializing SmartCommands API...");
-
-        this.gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
         this.commandManager = CommandManager.registerNewCommandManager(this);
 
-        Logger.log(Level.INFO, "SmartCommands API initialized.");
+        this.logger.log(Level.INFO, "SmartCommands API initialized.");
     }
-
-    public static SmartCommandsAPI getApi() { return SmartCommandsAPI.api; }
 
     public static class ApiBuilder {
 
         private String commandResourcePath, contentsResourcePath;
-        private boolean debug, parseColors, useContentsFile, createContentsFile;
-        private char colorChar;
+        private boolean debug, useContentsFile, createContentsFile;
 
         public ApiBuilder() {
             this.commandResourcePath = "commands.json";
             this.contentsResourcePath = "command_contents.json";
             this.debug = false;
-            this.parseColors = true;
             this.useContentsFile = true;
             this.createContentsFile = true;
-            this.colorChar = '&';
         }
 
         public ApiBuilder enableDebugger() {
             this.debug = true;
-            return this;
-        }
-
-        public ApiBuilder disableColorParser() {
-            this.parseColors = false;
-            return this;
-        }
-
-        public ApiBuilder setColorChar(char colorChar) {
-            this.colorChar = colorChar;
             return this;
         }
 
@@ -127,7 +96,7 @@ public class SmartCommandsAPI {
             return this;
         }
 
-        public SmartCommandsAPI get() {
+        public SmartCommandsAPI build(Plugin plugin) {
 
             SmartCommandsAPI api = new SmartCommandsAPI();
 
@@ -135,11 +104,10 @@ public class SmartCommandsAPI {
             api.contentsResourcePath = this.contentsResourcePath;
 
             api.debug = this.debug;
-            api.parseColors = this.parseColors;
             api.useContentsFile = this.useContentsFile;
             api.createContentsFile = this.createContentsFile;
 
-            api.colorChar = this.colorChar;
+            api.initialize(plugin);
 
             return api;
         }

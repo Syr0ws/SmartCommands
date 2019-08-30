@@ -6,8 +6,13 @@ import java.util.logging.Level;
 
 public class Logger {
 
-    public static void log(Level lvl, String msg) {
-        SmartCommandsAPI api = SmartCommandsAPI.getApi();
-        if(api.isDebuggerEnabled()) api.getPlugin().getLogger().log(lvl, msg);
+    private SmartCommandsAPI api;
+
+    public Logger(SmartCommandsAPI api) {
+        this.api = api;
+    }
+
+    public void log(Level level, String message) {
+        if(this.api.isDebuggerEnabled()) this.api.getPlugin().getLogger().log(level, message);
     }
 }

@@ -1,5 +1,6 @@
 package fr.syrows.smartcommands.utils;
 
+import fr.syrows.smartcommands.SmartCommandsAPI;
 import org.bukkit.plugin.Plugin;
 
 import java.io.*;
@@ -9,11 +10,11 @@ import java.util.logging.Level;
 
 public class FileUtils {
 
-    public static void createFileFromResource(Plugin plugin, Path path, String resourcePath, boolean override) {
+    public static void createFileFromResource(SmartCommandsAPI api, Path path, String resourcePath, boolean override) {
 
         if(Files.exists(path) && !override) return;
 
-        InputStream inputStream = plugin.getResource(resourcePath);
+        InputStream inputStream = api.getPlugin().getResource(resourcePath);
 
         if(inputStream == null)
             throw new NullPointerException(String.format("No resource found at '%s'.", resourcePath));
@@ -22,7 +23,7 @@ public class FileUtils {
 
         try {
 
-            Logger.log(Level.INFO, "Reading resource file...");
+            api.getLogger().log(Level.INFO, "Reading resource file...");
 
             StringBuilder sb = new StringBuilder();
             String l;
@@ -30,7 +31,7 @@ public class FileUtils {
             while((l = reader.readLine()) != null)
                 sb.append(l).append("\n");
 
-            Logger.log(Level.INFO, "Writing data...");
+            api.getLogger().log(Level.INFO, "Writing data...");
 
             BufferedWriter writer = new BufferedWriter(new FileWriter(path.toFile()));
 
@@ -38,17 +39,17 @@ public class FileUtils {
             writer.flush();
             writer.close();
 
-            Logger.log(Level.INFO, String.format("File %s was created.", path.getFileName()));
+            api.getLogger().log(Level.INFO, String.format("File %s was created.", path.getFileName()));
 
         } catch (IOException e) {
 
-            Logger.log(Level.SEVERE, String.format("Cannot create file %s.", path.getFileName()));
+            api.getLogger().log(Level.SEVERE, String.format("Cannot create file %s.", path.getFileName()));
 
             e.printStackTrace();
         }
     }
 
-    public static void createDirectory(Path path) {
+    public static void createDirectory(SmartCommandsAPI api, Path path) {
 
         if(Files.exists(path)) return;
 
@@ -56,11 +57,11 @@ public class FileUtils {
 
             Files.createDirectory(path);
 
-            Logger.log(Level.INFO, String.format("Directory %s was created.", path.getFileName()));
+            api.getLogger().log(Level.INFO, String.format("Directory %s was created.", path.getFileName()));
 
         } catch (IOException e) {
 
-            Logger.log(Level.SEVERE, String.format("Cannot create directory %s.", path.getFileName()));
+            api.getLogger().log(Level.SEVERE, String.format("Cannot create directory %s.", path.getFileName()));
 
             e.printStackTrace();
         }

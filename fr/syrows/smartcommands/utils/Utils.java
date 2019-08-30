@@ -6,8 +6,7 @@ import org.bukkit.ChatColor;
 public class Utils {
 
     public static String parseColors(String str) {
-        SmartCommandsAPI api = SmartCommandsAPI.getApi();
-        return api.isColorParserEnabled() ? ChatColor.translateAlternateColorCodes(api.getColorChar(), str) : str;
+        return ChatColor.translateAlternateColorCodes('&', str);
     }
 
     public static boolean isInt(String str) {
