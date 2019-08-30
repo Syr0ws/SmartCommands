@@ -34,7 +34,7 @@ public class CommandMessage {
 
     public <T> List<T> getList(String path) {
         Type type = new TypeToken<List<T>>(){}.getType();
-        return SmartCommandsAPI.getApi().getGson().fromJson(get(path), type);
+        return SmartCommandsAPI.gson.fromJson(get(path), type);
     }
 
     public JsonElement get(String path) {

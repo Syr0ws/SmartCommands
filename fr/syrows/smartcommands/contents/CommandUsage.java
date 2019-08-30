@@ -134,7 +134,7 @@ public class CommandUsage {
     }
 
     public Usage getAsUsage(JsonObject object) {
-        return SmartCommandsAPI.getApi().getGson().fromJson(object, Usage.class);
+        return SmartCommandsAPI.gson.fromJson(object, Usage.class);
     }
 
     public boolean isUsage(JsonObject object) {
