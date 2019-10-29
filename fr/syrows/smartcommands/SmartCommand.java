@@ -52,7 +52,9 @@ public class SmartCommand {
         return this.contents;
     }
 
-    void setCommandContents(CommandContents contents) { this.contents = contents; }
+    void setCommandContents(CommandContents contents) {
+        this.contents = contents;
+    }
 
     public CommandExecutor getExecutor() {
         return this.executor;

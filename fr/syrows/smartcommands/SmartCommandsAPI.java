@@ -28,19 +28,29 @@ public class SmartCommandsAPI {
         return this.contentsResourcePath;
     }
 
-    public void debug(boolean debug) { this.debug = debug; }
+    public void debug(boolean debug) {
+        this.debug = debug;
+    }
 
-    public boolean isDebuggerEnabled() { return this.debug; }
+    public boolean isDebuggerEnabled() {
+        return this.debug;
+    }
 
-    public boolean useContentsFile() { return this.useContentsFile; }
+    public boolean useContentsFile() {
+        return this.useContentsFile;
+    }
 
-    public boolean canCreateContentsFile() { return this.createContentsFile; }
+    public boolean canCreateContentsFile() {
+        return this.createContentsFile;
+    }
 
     public Plugin getPlugin() {
         return this.plugin;
     }
 
-    public Logger getLogger() { return this.logger; }
+    public Logger getLogger() {
+        return this.logger;
+    }
 
     public SmartCommandsManager getSmartCommandsManager() {
         return this.smartCommandsManager;

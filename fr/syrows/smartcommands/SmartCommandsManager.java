@@ -30,30 +30,6 @@ public class SmartCommandsManager {
         this.api = api;
     }
 
-    public void loadSmartCommands() {
-
-        Map<String, JsonObject> commands = this.loadCommands();
-        Map<String, JsonObject> contents = this.loadCommandContents();
-
-        Map<String, CommandContents> commandAttributes = this.parseCommandContents(contents);
-
-        for (Map.Entry<String, JsonObject> entry : commands.entrySet()) {
-
-            String name = entry.getKey().toLowerCase();
-            JsonObject object = entry.getValue();
-
-            CommandContents attributes;
-
-            if (this.api.useContentsFile() && commandAttributes.containsKey(name)) attributes = commandAttributes.get(name);
-            else attributes = new CommandContents(null, null, null);
-
-            SmartCommand command = SmartCommand.deserialize(name, object);
-            command.setCommandContents(attributes);
-
-            this.smartCommands.put(name, command);
-        }
-    }
-
     public void reloadCommandContents() {
 
         if(!this.api.useContentsFile()) return;
@@ -83,7 +59,9 @@ public class SmartCommandsManager {
         return this.smartCommands.getOrDefault(name, null);
     }
 
-    public boolean exists(String name) { return this.smartCommands.containsKey(name); }
+    public boolean exists(String name) {
+        return this.smartCommands.containsKey(name);
+    }
 
     private Map<String, JsonObject> loadCommands() {
 
@@ -159,11 +137,11 @@ public class SmartCommandsManager {
 
     }
 
-    private Map<String, CommandContents> parseCommandContents(Map<String, JsonObject> contents) {
+    private Map<String, CommandContents> parseCommandContents(Map<String, JsonObject> loadedContents) {
 
-        Map<String, CommandContents> commandAttributes = new HashMap<>();
+        Map<String, CommandContents> parsedContents = new HashMap<>();
 
-        contents.forEach((name, object) -> {
+        loadedContents.forEach((name, object) -> {
 
             CommandHelp commandHelp = null;
             CommandUsage commandUsage = null;
@@ -178,10 +156,34 @@ public class SmartCommandsManager {
             if(object.has("commandMessage"))
                 commandMessage = new CommandMessage(object.get("commandMessage").getAsJsonObject());
 
-            CommandContents attributes = new CommandContents(commandHelp, commandUsage, commandMessage);
+            CommandContents contents = new CommandContents(commandHelp, commandUsage, commandMessage);
 
-            commandAttributes.put(name.toLowerCase(), attributes);
+            parsedContents.put(name.toLowerCase(), contents);
         });
-        return commandAttributes;
+        return parsedContents;
+    }
+
+    void loadSmartCommands() {
+
+        Map<String, JsonObject> commands = this.loadCommands();
+        Map<String, JsonObject> contents = this.loadCommandContents();
+
+        Map<String, CommandContents> commandAttributes = this.parseCommandContents(contents);
+
+        for (Map.Entry<String, JsonObject> entry : commands.entrySet()) {
+
+            String name = entry.getKey().toLowerCase();
+            JsonObject object = entry.getValue();
+
+            CommandContents attributes;
+
+            if (this.api.useContentsFile() && commandAttributes.containsKey(name)) attributes = commandAttributes.get(name);
+            else attributes = new CommandContents(null, null, null);
+
+            SmartCommand command = SmartCommand.deserialize(name, object);
+            command.setCommandContents(attributes);
+
+            this.smartCommands.put(name, command);
+        }
     }
 }
