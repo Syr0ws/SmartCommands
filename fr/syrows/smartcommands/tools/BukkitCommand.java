@@ -1,10 +1,11 @@
 package fr.syrows.smartcommands.tools;
 
-import fr.syrows.smartcommands.commands.SmartCommand;
+import fr.syrows.smartcommands.commands.CommandContents;
 import fr.syrows.smartcommands.commands.CommandExecutor;
-import fr.syrows.smartcommands.commands.CommandIssuer;
+import fr.syrows.smartcommands.SmartCommand;
+import fr.syrows.smartcommands.commands.issuers.CommandIssuer;
 import fr.syrows.smartcommands.contents.CommandUsage;
-import fr.syrows.smartcommands.contents.usage.Usage;
+import fr.syrows.smartcommands.contents.usages.Usage;
 import fr.syrows.smartcommands.utils.Utils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -27,31 +28,21 @@ public class BukkitCommand extends Command {
 
         CommandIssuer issuer = new CommandIssuer(sender, this.command, this);
 
-        List<CommandIssuer.IssuerType> issuers = this.command.getIssuers();
-
-        if(!issuer.isPlayer() && !issuers.contains(CommandIssuer.IssuerType.CONSOLE)) {
-            issuer.sendMessage("Command can be executed only by player.");
-            return true;
-        }
-
-        if(issuer.isPlayer() && !issuers.contains(CommandIssuer.IssuerType.PLAYER)) {
-            issuer.sendMessage("Command can be executed only by console.");
-            return true;
-        }
+        if(!this.command.canExecute(issuer.getIssuerType())) return false;
 
         CommandExecutor executor = this.command.getExecutor();
+        CommandContents attributes = this.command.getCommandContents();
 
         boolean executed = executor.onCommand(this.command, issuer, label, args);
 
-        if(!executed && (this.command.useUsages() || this.command.useHelp())) {
-
-            if(args.length == 0) args = new String[]{""};
+        if(!executed && (attributes.hasCommandUsage() || attributes.hasCommandHelp())) {
 
             if(args.length == 2 && args[0].equalsIgnoreCase("help") && Utils.isInt(args[1])) {
+
                 issuer.sendHelp(label, args, Integer.parseInt(args[1]), true);
-                return true;
-            }
-            issuer.sendHelp(label, args, 1, false);
+                executed = true;
+
+            } else issuer.sendHelp(label, args.length == 0 ? new String[]{""} : args, 1, false);
         }
         return executed;
     }
@@ -59,18 +50,17 @@ public class BukkitCommand extends Command {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) throws IllegalArgumentException {
 
-        if(!this.command.useTabComplete()) return super.tabComplete(sender, label, args);
+        CommandContents attributes = this.command.getCommandContents();
+        CommandUsage commandUsage = attributes.getCommandUsage();
 
-        CommandUsage commandUsage = this.command.getCommandUsage();
+        if(!this.command.useTabCompleter() || commandUsage == null)
+            return super.tabComplete(sender, label, args);
 
-        if(commandUsage == null)
-            throw new NullPointerException(String.format("Cannot find a CommandUsage for the command %s", this.command.getName()));
+        List<String> completions = new ArrayList<>();
 
-        Map<String, List<Usage>> allTabCompletes = commandUsage.getTabCompletes(args);
+        Map<String, List<Usage>> allCompletions = commandUsage.getTabCompletes(args);
 
-        List<String> tabCompletes = new ArrayList<>();
-
-        for(Map.Entry<String, List<Usage>> entry : allTabCompletes.entrySet()) {
+        for(Map.Entry<String, List<Usage>> entry : allCompletions.entrySet()) {
 
             String key = entry.getKey();
             List<Usage> usages = entry.getValue();
@@ -80,13 +70,13 @@ public class BukkitCommand extends Command {
                 String permission = usage.getPermission();
 
                 if(permission == null || sender.hasPermission(permission)) {
-                    tabCompletes.add(key);
+                    completions.add(key);
                     break;
                 }
             }
         }
-        List<String> newTabCompletes = this.command.getExecutor().onTabComplete(this.command, sender, label, args, tabCompletes);
+        List<String> newTabCompletes = this.command.getExecutor().onTabComplete(this.command, sender, label, args, completions);
 
-        return newTabCompletes != null ? newTabCompletes : tabCompletes;
+        return newTabCompletes != null ? newTabCompletes : completions;
     }
 }

@@ -1,26 +1,31 @@
 package fr.syrows.smartcommands.contents;
 
-import fr.syrows.smartcommands.commands.SmartCommand;
-
+import fr.syrows.smartcommands.SmartCommand;
 import fr.syrows.smartcommands.tools.EasyComponent;
+import fr.syrows.smartcommands.tools.Pagination;
 import fr.syrows.smartcommands.utils.Utils;
 import net.md_5.bungee.api.chat.TextComponent;
 
-import java.util.List;
-
 public class CommandHelp {
 
-    private String top, bottom;
-    private String[] previousPage, nextPage, format;
+    private String[] previousPage, nextPage, pagination, format;
     private int minOfCommands, commandsPerPage;
 
-    public TextComponent buildPagination(SmartCommand command, List<TextComponent> components, int page) {
+    public String[] getFormat() { return format; }
 
-        int index = page == 1 ? 0 : this.commandsPerPage * (page - 1);
+    public String[] getPreviousPage() { return previousPage; }
+
+    public String[] getNextPage() { return nextPage; }
+
+    public int getMinOfCommands() { return minOfCommands; }
+
+    public int getCommandsPerPage() { return commandsPerPage; }
+
+    public TextComponent buildPaginationSystem(SmartCommand command, Pagination pagination, int page) {
 
         EasyComponent base = new EasyComponent().setText("");
 
-        for(String argument : this.format) {
+        for(String argument : this.pagination) {
 
             String text, showText;
 
@@ -40,7 +45,7 @@ public class CommandHelp {
 
                     if(!showText.equals("")) previousPage.showText(showText);
 
-                    if(page != 1) previousPage.runCommand(String.format("%s help %d", command.getName(), page - 1));
+                    if(!pagination.isFirstPage(page)) previousPage.runCommand(String.format("%s help %d", command.getName(), page - 1));
 
                     base.addExtra(previousPage);
                     break;
@@ -48,7 +53,7 @@ public class CommandHelp {
 
                     EasyComponent nextPage = new EasyComponent();
 
-                    boolean isLast = index + this.commandsPerPage >= components.size();
+                    boolean isLast = pagination.isLastPage(page);
 
                     text = Utils.parseColors(!isLast ? this.nextPage[0] : this.nextPage[2]);
                     showText = Utils.parseColors(!isLast ? this.nextPage[1] : this.nextPage[3]);
@@ -65,18 +70,4 @@ public class CommandHelp {
         }
         return base.build();
     }
-
-    public String getTop() { return top; }
-
-    public String getBottom() { return bottom; }
-
-    public String[] getFormat() { return format; }
-
-    public String[] getPreviousPage() { return previousPage; }
-
-    public String[] getNextPage() { return nextPage; }
-
-    public int getMinOfCommands() { return minOfCommands; }
-
-    public int getCommandsPerPage() { return commandsPerPage; }
 }

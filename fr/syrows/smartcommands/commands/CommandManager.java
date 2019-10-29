@@ -1,24 +1,15 @@
 package fr.syrows.smartcommands.commands;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
+import fr.syrows.smartcommands.SmartCommand;
 import fr.syrows.smartcommands.SmartCommandsAPI;
-import fr.syrows.smartcommands.contents.CommandHelp;
-import fr.syrows.smartcommands.contents.CommandMessage;
-import fr.syrows.smartcommands.contents.CommandUsage;
+import fr.syrows.smartcommands.SmartCommandsManager;
 import fr.syrows.smartcommands.tools.BukkitCommand;
-import fr.syrows.smartcommands.utils.FileUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.command.CommandMap;
+import org.bukkit.command.Command;
+import org.bukkit.command.SimpleCommandMap;
 import org.bukkit.plugin.Plugin;
 
-import java.io.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.Type;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -27,55 +18,83 @@ public class CommandManager {
 
     private SmartCommandsAPI api;
 
-    private CommandMap commandMap;
-    private Map<String, SmartCommand> commands;
+    private SimpleCommandMap commandMap;
 
     public CommandManager(SmartCommandsAPI api) {
         this.api = api;
-        this.commands = new HashMap<>();
     }
 
     public void registerCommand(String name, CommandExecutor executor) {
 
-        this.api.getLogger().log(Level.INFO, String.format("Registering %s command...", name));
+        name = name.toLowerCase();
+
+        SmartCommandsManager manager = this.api.getSmartCommandsManager();
+
+        this.api.getLogger().log(Level.INFO, String.format("Registering command '%s'...", name));
 
         if(this.commandMap == null)
-            throw new IllegalStateException("CommandMap cannot be null. Please, initialize the API before registering commands.");
+            throw new IllegalStateException("CommandMap cannot be null. Initialize the API before registering smartCommands.");
 
-        if(!commands.containsKey(name))
-            throw new NullPointerException(String.format("Command %s is not registered.", name));
+        if(!manager.exists(name))
+            throw new NullPointerException(String.format("Command '%s' is not loaded.", name));
 
         if(executor == null)
-            throw new IllegalArgumentException("CommandExecutor cannot be null");
+            throw new IllegalArgumentException("CommandExecutor cannot be null.");
 
-        SmartCommand command = this.commands.get(name);
+        SmartCommand command = manager.getSmartCommand(name);
         command.setExecutor(executor);
 
         BukkitCommand bukkitCommand = new BukkitCommand(command);
 
-        this.commandMap.register(name, bukkitCommand);
+        this.commandMap.register(this.api.getPlugin().getName(), bukkitCommand);
 
-        this.api.getLogger().log(Level.INFO, String.format("Command %s registered.", name));
+        this.api.getLogger().log(Level.INFO, String.format("Command '%s' registered.", name));
     }
 
-    public boolean exist(String name) {
-        return this.commands.containsKey(name);
+    public void unregisterCommand(String name) {
+
+        name = name.toLowerCase();
+
+        if(!isRegistered(name))
+            throw new NullPointerException(String.format("Command '%s' is not registered.", name));
+
+        Plugin plugin = this.api.getPlugin();
+        String pluginName = plugin.getName().toLowerCase();
+
+        Map<String, Command> knownCommands = getKnownCommands();
+
+        Command command = knownCommands.get(name);
+
+        knownCommands.remove(name);
+        knownCommands.remove(String.format("%s:%s", pluginName, name));
+
+        for(String alias : command.getAliases()) {
+
+            knownCommands.remove(String.format("%s:%s", pluginName, alias));
+
+            if(knownCommands.containsKey(alias)) {
+
+                String current = knownCommands.get(alias).toString();
+                String ref = current.substring(current.indexOf('(') + 1, current.indexOf(')'));
+
+                if(ref.equals(name)) knownCommands.remove(alias);
+            }
+        }
+
+        this.api.getLogger().log(Level.INFO, String.format("Command '%s' has been unregistered.", name));
     }
 
-    public SmartCommand getCommand(String name) {
-        return this.commands.getOrDefault(name, null);
+    public boolean isRegistered(String name) {
+        return this.commandMap.getCommand(name.toLowerCase()) != null;
     }
 
-    private void setupCommandMap() {
+    public void setupCommandMap() {
 
         this.api.getLogger().log(Level.INFO, "Initializing CommandMap...");
 
         try {
 
-            Field commandMap = Bukkit.getServer().getClass().getDeclaredField("commandMap");
-            commandMap.setAccessible(true);
-
-            this.commandMap = (CommandMap) commandMap.get(Bukkit.getServer());
+            this.commandMap = (SimpleCommandMap) getField(Bukkit.getServer().getPluginManager(), "commandMap");
 
             this.api.getLogger().log(Level.INFO, "CommandMap initialized.");
 
@@ -87,140 +106,32 @@ public class CommandManager {
         }
     }
 
-    private void loadCommands() {
+    private Map<String, Command> getKnownCommands() {
 
-        this.api.getLogger().log(Level.INFO, "Loading commands...");
-
-        String commandResourcePath = this.api.getCommandResourcePath();
-
-        InputStream stream = this.api.getPlugin().getResource(commandResourcePath);
-
-        if(stream == null)
-            throw new NullPointerException(String.format("Cannot find the resource command_contents.json at %s", commandResourcePath));
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
-        Type type = new TypeToken<Map<String, SmartCommand>>(){}.getType();
-
-        Map<String, SmartCommand> commands = SmartCommandsAPI.gson.fromJson(reader, type);
-
-        if(commands == null) return;
-
-        commands.forEach((name, command) -> command.setName(name));
-
-        this.commands = commands;
-
-        this.api.getLogger().log(Level.INFO, String.format("%d command%s loaded.", commands.size(), commands.size() <= 1 ? "" : "s"));
-
-        try {
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void loadCommandContents() {
-
-        if(!this.api.useContentsFile()) return;
-
-        this.api.getLogger().log(Level.INFO, "Loading command contents...");
-
-        Plugin plugin = this.api.getPlugin();
-
-        Path path = Paths.get(plugin.getDataFolder() + File.separator + "commands_contents.json");
-
-        if(!Files.exists(path) && this.api.canCreateContentsFile()) {
-            FileUtils.createDirectory(this.api, plugin.getDataFolder().toPath());
-            FileUtils.createFileFromResource(this.api, path, this.api.getContentsResourcePath(), false);
-        }
-
-        Map<String, JsonObject> commandContents = new HashMap<>();
+        Map<String, Command> knownCommands = new HashMap<>();
 
         try {
 
-            this.api.getLogger().log(Level.INFO, "Loading data...");
+            Object map = getField(this.commandMap, "knownCommands");
+            knownCommands = (HashMap<String, Command>) map;
 
-            BufferedReader reader;
-
-            if(!this.api.canCreateContentsFile()) {
-
-                String contentsResourcePath = this.api.getContentsResourcePath();
-
-                InputStream stream = plugin.getResource(contentsResourcePath);
-
-                if(stream == null)
-                    throw new NullPointerException(String.format("Cannot find the resource commands_contents.json at %s", contentsResourcePath));
-
-                reader = new BufferedReader(new InputStreamReader(stream));
-
-            } else {
-
-                reader = new BufferedReader(new FileReader(path.toFile()));
-            }
-            Type type = new TypeToken<Map<String, JsonObject>>(){}.getType();
-            Map<String, JsonObject> contents = SmartCommandsAPI.gson.fromJson(reader, type);
-
-            if(contents != null) commandContents = contents;
-
-            this.api.getLogger().log(Level.INFO, "Data loaded.");
-
-            reader.close();
-
-        } catch (IOException e) {
-
-            this.api.getLogger().log(Level.SEVERE, "Cannot load command contents.");
+        } catch (NoSuchFieldException | IllegalAccessException e) {
 
             e.printStackTrace();
         }
-        this.api.getLogger().log(Level.INFO, "Assigning data...");
-
-        for(Map.Entry<String, JsonObject> entry : commandContents.entrySet()) {
-
-            String name = entry.getKey();
-
-            if(!exist(name)) continue;
-
-            JsonObject object = entry.getValue();
-
-            SmartCommand command = getCommand(name);
-
-            if(object.has("commandHelp"))
-                command.setCommandHelp(SmartCommandsAPI.gson.fromJson(object.get("commandHelp"), CommandHelp.class));
-
-            if(object.has("commandUsage"))
-                command.setCommandUsage(new CommandUsage(object.get("commandUsage").getAsJsonObject()));
-
-            if(object.has("commandMessage"))
-                command.setCommandMessage(new CommandMessage(object.get("commandMessage").getAsJsonObject()));
-        }
-        this.api.getLogger().log(Level.INFO, "Data assigned.");
-
-        this.api.getLogger().log(Level.INFO, "Command contents loaded.");
+        return knownCommands;
     }
 
-    public void reloadCommandContents() {
+    private Object getField(Object object, String name) throws NoSuchFieldException, IllegalAccessException {
 
-        this.api.getLogger().log(Level.INFO, "Starting command contents reload.");
+        Field field = object.getClass().getDeclaredField(name);
 
-        loadCommandContents();
+        field.setAccessible(true);
 
-        this.api.getLogger().log(Level.INFO, "All command contents were reloaded.");
-    }
+        Object result = field.get(object);
 
-    public static CommandManager registerNewCommandManager(SmartCommandsAPI api) {
+        field.setAccessible(false);
 
-        if(api.getCommandManager() != null)
-            throw new IllegalStateException("CommandManager is already registered.");
-
-        api.getLogger().log(Level.INFO, "Registering new CommandManager...");
-
-        CommandManager commandManager = new CommandManager(api);
-
-        commandManager.setupCommandMap();
-        commandManager.loadCommands();
-        commandManager.loadCommandContents();
-
-        api.getLogger().log(Level.INFO, "CommandManager registered.");
-
-        return commandManager;
+        return result;
     }
 }

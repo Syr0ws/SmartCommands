@@ -3,7 +3,7 @@ package fr.syrows.smartcommands.contents;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import fr.syrows.smartcommands.SmartCommandsAPI;
-import fr.syrows.smartcommands.contents.usage.Usage;
+import fr.syrows.smartcommands.contents.usages.Usage;
 import fr.syrows.smartcommands.utils.Utils;
 import org.bukkit.util.StringUtil;
 

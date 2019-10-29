@@ -20,6 +20,10 @@ public class CommandMessage {
         return get(path).getAsString();
     }
 
+    public byte getByte(String path) { return get(path).getAsByte(); }
+
+    public short getShort(String path) { return get(path).getAsShort(); }
+
     public int getInt(String path) {
         return get(path).getAsInt();
     }
@@ -27,6 +31,8 @@ public class CommandMessage {
     public double getDouble(String path) {
         return get(path).getAsDouble();
     }
+
+    public float getFloat(String path) { return get(path).getAsFloat(); }
 
     public long getLong(String path) {
         return get(path).getAsLong();
@@ -58,16 +64,17 @@ public class CommandMessage {
             sb.append("key");
 
             if(!current.has(key))
-                throw new NullPointerException(String.format("The element %s was not found at the path %s", key, path));
+                throw new NullPointerException(String.format("The element '%s' was not found at the path '%s'.", key, path));
 
             JsonElement element = current.get(key);
 
             if(!element.isJsonObject()) {
 
                 if(i + 1 == index.length) return element;
-                else throw new NullPointerException(String.format("Cannot find a JsonObject at %s. Found: %s", sb.toString(), element.getClass().getName()));
+                else throw new NullPointerException(String.format("Cannot find a JsonObject at '%s'. Found: %s", sb.toString(), element.getClass().getTypeName()));
             }
             current = element.getAsJsonObject();
+
             sb.append(".");
         }
         return null;

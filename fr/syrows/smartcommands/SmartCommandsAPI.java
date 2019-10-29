@@ -1,7 +1,6 @@
 package fr.syrows.smartcommands;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import fr.syrows.smartcommands.commands.CommandManager;
 import fr.syrows.smartcommands.utils.Logger;
 import org.bukkit.plugin.Plugin;
@@ -10,7 +9,7 @@ import java.util.logging.Level;
 
 public class SmartCommandsAPI {
 
-    public static final Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+    public static final Gson gson = new Gson();
 
     private String commandResourcePath, contentsResourcePath;
     private boolean debug, useContentsFile, createContentsFile;
@@ -18,6 +17,7 @@ public class SmartCommandsAPI {
     private Plugin plugin;
     private Logger logger;
 
+    private SmartCommandsManager smartCommandsManager;
     private CommandManager commandManager;
 
     public String getCommandResourcePath() {
@@ -28,9 +28,9 @@ public class SmartCommandsAPI {
         return this.contentsResourcePath;
     }
 
-    public boolean isDebuggerEnabled() {
-        return this.debug;
-    }
+    public void debug(boolean debug) { this.debug = debug; }
+
+    public boolean isDebuggerEnabled() { return this.debug; }
 
     public boolean useContentsFile() { return this.useContentsFile; }
 
@@ -41,6 +41,10 @@ public class SmartCommandsAPI {
     }
 
     public Logger getLogger() { return this.logger; }
+
+    public SmartCommandsManager getSmartCommandsManager() {
+        return this.smartCommandsManager;
+    }
 
     public CommandManager getCommandManager() {
         return this.commandManager;
@@ -53,7 +57,11 @@ public class SmartCommandsAPI {
 
         this.logger.log(Level.INFO, "Initializing SmartCommands API...");
 
-        this.commandManager = CommandManager.registerNewCommandManager(this);
+        this.smartCommandsManager = new SmartCommandsManager(this);
+        this.smartCommandsManager.loadSmartCommands();
+
+        this.commandManager = new CommandManager(this);
+        this.commandManager.setupCommandMap();
 
         this.logger.log(Level.INFO, "SmartCommands API initialized.");
     }
@@ -66,23 +74,23 @@ public class SmartCommandsAPI {
         public ApiBuilder() {
             this.commandResourcePath = "commands.json";
             this.contentsResourcePath = "command_contents.json";
-            this.debug = false;
             this.useContentsFile = true;
             this.createContentsFile = true;
+            this.debug = false;
         }
 
-        public ApiBuilder enableDebugger() {
-            this.debug = true;
+        public ApiBuilder debug(boolean debug) {
+            this.debug = debug;
             return this;
         }
 
-        public ApiBuilder setCommandResourceFolderPath(String resourcePath) {
-            this.commandResourcePath = resourcePath + "/commands.json";
+        public ApiBuilder setCommandResourceFolderPath(String path) {
+            this.commandResourcePath = String.format("%s/commands.json", path);
             return this;
         }
 
-        public ApiBuilder setContentsResourceFolderPath(String resourcePath) {
-            this.contentsResourcePath = resourcePath + "/command_contents.json";
+        public ApiBuilder setContentsResourceFolderPath(String path) {
+            this.contentsResourcePath = String.format("%s/command_contents.json", path);
             return this;
         }
 
@@ -100,10 +108,11 @@ public class SmartCommandsAPI {
 
             SmartCommandsAPI api = new SmartCommandsAPI();
 
+            api.debug = this.debug;
+
             api.commandResourcePath = this.commandResourcePath;
             api.contentsResourcePath = this.contentsResourcePath;
 
-            api.debug = this.debug;
             api.useContentsFile = this.useContentsFile;
             api.createContentsFile = this.createContentsFile;
 
