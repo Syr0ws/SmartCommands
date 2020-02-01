@@ -7,15 +7,16 @@ import fr.syrows.smartcommands.commands.CommandExecutor;
 import fr.syrows.smartcommands.commands.issuers.IssuerType;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class SmartCommand {
 
-    private String name, description, usage;
+    private String name, description, usage, resource;
     private List<String> aliases;
     private List<IssuerType> issuers;
-    private boolean tabComplete;
+    private boolean tabComplete, resourceOnly;
+
+    private Map<String, List<String>> completions = new HashMap<>();
 
     private CommandContents contents;
     private CommandExecutor executor;
@@ -36,6 +37,10 @@ public class SmartCommand {
         return this.usage;
     }
 
+    public String getResourcePath() {
+        return this.resource;
+    }
+
     public List<String> getAliases() {
         return this.aliases;
     }
@@ -46,6 +51,14 @@ public class SmartCommand {
 
     public boolean useTabCompleter() {
         return this.tabComplete;
+    }
+
+    public boolean isResourceOnly() {
+        return this.resourceOnly;
+    }
+
+    public boolean hasResourcePath() {
+        return this.resource != null;
     }
 
     public CommandContents getCommandContents() {
@@ -68,6 +81,18 @@ public class SmartCommand {
         return this.issuers.contains(type);
     }
 
+    public List<String> getCompletions(String key) {
+        return this.completions.getOrDefault(key, Collections.emptyList());
+    }
+
+    public void registerCompletions(String key, List<String> completions) {
+        this.completions.put(key, completions);
+    }
+
+    public void unregisterCompletions(String key) {
+        this.completions.remove(key);
+    }
+
     public static SmartCommand deserialize(String name, JsonObject object) {
 
         SmartCommand command = new SmartCommand(name);
@@ -80,6 +105,14 @@ public class SmartCommand {
 
         command.tabComplete = object.has("tabComplete")
                 && object.get("tabComplete").getAsBoolean();
+
+        if(object.has("resource")) {
+
+            command.resource = object.get("resource").getAsString();
+
+            command.resourceOnly = object.has("resourceOnly")
+                    && object.get("resourceOnly").getAsBoolean();
+        }
 
         if(object.has("aliases")) {
 

@@ -7,7 +7,6 @@ import fr.syrows.smartcommands.tools.BukkitCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.SimpleCommandMap;
-import org.bukkit.plugin.Plugin;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -35,7 +34,7 @@ public class CommandManager {
         if(this.commandMap == null)
             throw new IllegalStateException("CommandMap cannot be null. Initialize the API before registering smartCommands.");
 
-        if(!manager.exists(name))
+        if(!manager.isLoaded(name))
             throw new NullPointerException(String.format("Command '%s' is not loaded.", name));
 
         if(executor == null)
@@ -51,37 +50,40 @@ public class CommandManager {
         this.api.getLogger().log(Level.INFO, String.format("Command '%s' registered.", name));
     }
 
-    public void unregisterCommand(String name) {
+    public void unregisterCommand(String plugin, String name) {
 
+        plugin = plugin.toLowerCase();
         name = name.toLowerCase();
 
-        if(!isRegistered(name))
+        if(!isRegistered(plugin, name))
             throw new NullPointerException(String.format("Command '%s' is not registered.", name));
-
-        Plugin plugin = this.api.getPlugin();
-        String pluginName = plugin.getName().toLowerCase();
 
         Map<String, Command> knownCommands = getKnownCommands();
 
         Command command = knownCommands.get(name);
 
         knownCommands.remove(name);
-        knownCommands.remove(String.format("%s:%s", pluginName, name));
+        knownCommands.remove(String.format("%s:%s", plugin, name));
 
         for(String alias : command.getAliases()) {
 
-            knownCommands.remove(String.format("%s:%s", pluginName, alias));
+            String format = String.format("%s:%s", plugin, alias);
 
-            if(knownCommands.containsKey(alias)) {
-
-                String current = knownCommands.get(alias).toString();
-                String ref = current.substring(current.indexOf('(') + 1, current.indexOf(')'));
-
-                if(ref.equals(name)) knownCommands.remove(alias);
+            if(knownCommands.containsKey(format)) {
+                knownCommands.remove(alias);
+                knownCommands.remove(format);
             }
         }
-
         this.api.getLogger().log(Level.INFO, String.format("Command '%s' has been unregistered.", name));
+    }
+
+    public boolean isRegistered(String plugin, String name) {
+
+        Map<String, Command> knownCommands = getKnownCommands();
+
+        String command = String.format("%s:%s", plugin.toLowerCase(), name);
+
+        return knownCommands.containsKey(command);
     }
 
     public boolean isRegistered(String name) {

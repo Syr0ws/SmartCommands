@@ -4,6 +4,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import fr.syrows.smartcommands.SmartCommandsAPI;
+import fr.syrows.smartcommands.tools.EasyComponent;
+import net.md_5.bungee.api.chat.TextComponent;
 
 import java.lang.reflect.Type;
 import java.util.List;
@@ -20,9 +22,13 @@ public class CommandMessage {
         return get(path).getAsString();
     }
 
-    public byte getByte(String path) { return get(path).getAsByte(); }
+    public byte getByte(String path) {
+        return get(path).getAsByte();
+    }
 
-    public short getShort(String path) { return get(path).getAsShort(); }
+    public short getShort(String path) {
+        return get(path).getAsShort();
+    }
 
     public int getInt(String path) {
         return get(path).getAsInt();
@@ -32,10 +38,20 @@ public class CommandMessage {
         return get(path).getAsDouble();
     }
 
-    public float getFloat(String path) { return get(path).getAsFloat(); }
+    public float getFloat(String path) {
+        return get(path).getAsFloat();
+    }
 
     public long getLong(String path) {
         return get(path).getAsLong();
+    }
+
+    public EasyComponent getEasyComponent(String path) {
+        return EasyComponent.deserialize(get(path).getAsJsonObject());
+    }
+
+    public TextComponent getTextComponent(String path) {
+        return EasyComponent.deserialize(get(path).getAsJsonObject()).getAsTextComponent();
     }
 
     public <T> List<T> getList(String path) {
@@ -55,27 +71,19 @@ public class CommandMessage {
 
         String[] index = path.split("\\.");
 
-        StringBuilder sb = new StringBuilder();
-
         for(int i = 0; i < index.length; i++) {
 
             String key = index[i];
 
-            sb.append("key");
-
             if(!current.has(key))
-                throw new NullPointerException(String.format("The element '%s' was not found at the path '%s'.", key, path));
+                throw new NullPointerException(String.format("Cannot find a JsonElement at '%s'.", path));
 
             JsonElement element = current.get(key);
 
-            if(!element.isJsonObject()) {
+            if(i + 1 == index.length) return element;
+            else if(!element.isJsonObject()) throw new NullPointerException(String.format("Element at '%s' not found.", path));
 
-                if(i + 1 == index.length) return element;
-                else throw new NullPointerException(String.format("Cannot find a JsonObject at '%s'. Found: %s", sb.toString(), element.getClass().getTypeName()));
-            }
             current = element.getAsJsonObject();
-
-            sb.append(".");
         }
         return null;
     }

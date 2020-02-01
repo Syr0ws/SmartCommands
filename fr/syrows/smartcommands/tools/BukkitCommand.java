@@ -4,7 +4,6 @@ import fr.syrows.smartcommands.commands.CommandContents;
 import fr.syrows.smartcommands.commands.CommandExecutor;
 import fr.syrows.smartcommands.SmartCommand;
 import fr.syrows.smartcommands.commands.issuers.CommandIssuer;
-import fr.syrows.smartcommands.contents.CommandUsage;
 import fr.syrows.smartcommands.contents.usages.Usage;
 import fr.syrows.smartcommands.utils.Utils;
 import org.bukkit.command.Command;
@@ -35,7 +34,7 @@ public class BukkitCommand extends Command {
 
         boolean executed = executor.onCommand(this.command, issuer, label, args);
 
-        if(!executed && (attributes.hasCommandUsage() || attributes.hasCommandHelp())) {
+        if(!executed && attributes.hasCommandUsage()) {
 
             if(args.length == 2 && args[0].equalsIgnoreCase("help") && Utils.isInt(args[1])) {
 
@@ -50,33 +49,14 @@ public class BukkitCommand extends Command {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) throws IllegalArgumentException {
 
-        CommandContents attributes = this.command.getCommandContents();
-        CommandUsage commandUsage = attributes.getCommandUsage();
+        CommandIssuer issuer = new CommandIssuer(sender, this.command, this);
 
-        if(!this.command.useTabCompleter() || commandUsage == null)
-            return super.tabComplete(sender, label, args);
+        CommandContents contents = this.command.getCommandContents();
 
-        List<String> completions = new ArrayList<>();
+        boolean canTabComplete = this.command.canExecute(issuer.getIssuerType())
+                && command.useTabCompleter() && contents.hasCommandUsage();
 
-        Map<String, List<Usage>> allCompletions = commandUsage.getTabCompletes(args);
-
-        for(Map.Entry<String, List<Usage>> entry : allCompletions.entrySet()) {
-
-            String key = entry.getKey();
-            List<Usage> usages = entry.getValue();
-
-            for(Usage usage : usages) {
-
-                String permission = usage.getPermission();
-
-                if(permission == null || sender.hasPermission(permission)) {
-                    completions.add(key);
-                    break;
-                }
-            }
-        }
-        List<String> newTabCompletes = this.command.getExecutor().onTabComplete(this.command, sender, label, args, completions);
-
-        return newTabCompletes != null ? newTabCompletes : completions;
+        if(canTabComplete) return contents.getCommandUsage().findCompletions(sender, this.command, args);
+        else return super.tabComplete(sender, label, args);
     }
 }
