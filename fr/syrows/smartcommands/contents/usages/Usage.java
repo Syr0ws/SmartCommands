@@ -1,53 +1,56 @@
 package fr.syrows.smartcommands.contents.usages;
 
+import com.google.gson.JsonObject;
 import fr.syrows.smartcommands.tools.EasyComponent;
-import fr.syrows.smartcommands.utils.Utils;
-import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.chat.TextComponent;
 
 public class Usage {
 
-    private String text, showText, permission, console, command;
-    private ChatColor color;
-    private UsageAction action;
+    private TextComponent component;
+    private String console, permission;
 
-    public String getText() { return text; }
+    public TextComponent getTextComponent() {
+        return this.component;
+    }
 
-    public String getShowText() { return showText; }
+    public boolean hasComponent() {
+        return this.component != null;
+    }
 
-    public String getPermission() { return permission; }
+    public String getConsoleMessage() {
+        return this.console;
+    }
 
-    public String getConsoleMessage() { return console; }
+    public boolean hasConsoleMessage() {
+        return this.console != null;
+    }
 
-    public String getCommand() { return command; }
+    public String getPermission() {
+        return this.permission;
+    }
 
-    public ChatColor getColor() { return color; }
+    public boolean hasPermission() {
+        return this.permission != null;
+    }
 
-    public UsageAction getAction() { return action; }
+    public static boolean isUsage(JsonObject object) {
+        return object.has("type") && object.get("type").getAsString().equals("Usage.class");
+    }
 
-    public TextComponent getUsageAsTextComponent(String label) {
+    public static Usage deserialize(JsonObject object) {
 
-        if(this.text == null) return null;
+        Usage usage = new Usage();
 
-        EasyComponent component = new EasyComponent()
-                .setText(Utils.parseColors(this.text.replace("%command%", label)));
+        if(object.has("permission"))
+            usage.permission = object.get("permission").getAsString();
 
-        if(this.showText != null) component
-                .showText(Utils.parseColors(this.showText.replace("%command%", label)));
+        if(object.has("console"))
+            usage.console = object.get("console").getAsString();
 
-        if(this.color != null) component.setColor(this.color);
-
-        if(this.action != null) {
-
-            switch (this.action) {
-                case RUN_COMMAND:
-                    component.runCommand(this.command.replace("%command%", label));
-                    break;
-                case SUGGEST_COMMAND:
-                    component.suggestCommand(this.command.replace("%command%", label));
-                    break;
-            }
+        if(object.has("component")) {
+            EasyComponent component = EasyComponent.deserialize(object.get("component").getAsJsonObject());
+            usage.component = component.getAsTextComponent();
         }
-        return component.build();
+        return usage;
     }
 }

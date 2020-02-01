@@ -2,21 +2,33 @@ package fr.syrows.smartcommands.tools;
 
 public class Pagination {
 
-    private int elementsPerPage, totalOfElements;
+    private int page, elementsPerPage, totalOfElements;
 
-    public Pagination(int elementsPerPage, int totalOfElements) {
+    public Pagination(int page, int elementsPerPage, int totalOfElements) {
+
         this.elementsPerPage = elementsPerPage;
         this.totalOfElements = totalOfElements;
+
+        if(page < getFirstPage()) page = getFirstPage();
+        else if(page > getLastPage()) page = getLastPage();
+
+        this.page = page;
     }
 
-    public boolean isFirstPage(int page) {
+    public int getCurrentPage() {
+        return this.page;
+    }
+
+    public boolean isFirstPage() {
         return page == getFirstPage();
     }
 
-    public boolean isLastPage(int page) { return page == getLastPage(); }
+    public boolean isLastPage() {
+        return page == getLastPage();
+    }
 
-    public int getStartingIndex(int page) {
-        return this.elementsPerPage * (page - 1);
+    public int getStartingIndex() {
+        return this.elementsPerPage * (this.page - 1);
     }
 
     public int getFirstPage() {
@@ -24,11 +36,14 @@ public class Pagination {
     }
 
     public int getLastPage() {
-        return (int) Math.ceil((double) totalOfElements / (double) elementsPerPage);
+        return (int) Math.ceil((double) this.totalOfElements / (double) this.elementsPerPage);
     }
 
-    public int countElementsAt(int page) {
-        return isLastPage(page) ? this.totalOfElements % elementsPerPage : this.elementsPerPage;
+    public int countElements() {
+
+        int elements = this.totalOfElements % this.elementsPerPage;
+
+        return elements == 0 || !isLastPage() ? this.elementsPerPage : elements;
     }
 
     public int getElementsPerPage() {

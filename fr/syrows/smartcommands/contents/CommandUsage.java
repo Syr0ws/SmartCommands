@@ -2,148 +2,196 @@ package fr.syrows.smartcommands.contents;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import fr.syrows.smartcommands.SmartCommandsAPI;
+import fr.syrows.smartcommands.SmartCommand;
 import fr.syrows.smartcommands.contents.usages.Usage;
 import fr.syrows.smartcommands.utils.Utils;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.util.StringUtil;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 public class CommandUsage {
 
     private static final int MIN_SIMILARITY_PERCENTAGE = 35;
 
-    private JsonObject object;
+    private JsonObject container;
 
-    public CommandUsage(JsonObject object){
-        this.object = object;
+    public CommandUsage(JsonObject object) {
+        this.container = object;
     }
 
-    public List<Usage> findUsages(String[] args) {
+    public List<Usage> findUsages(CommandSender sender, String[] args) {
+
+        if(Usage.isUsage(this.container))
+            return Collections.singletonList(Usage.deserialize(this.container));
 
         List<Usage> usages = new ArrayList<>();
 
-        JsonObject current = this.object;
+        JsonObject current = this.container;
 
         for(int i = 0; i < args.length; i++) {
 
-            if(isUsage(current)) {
-                usages.add(getAsUsage(current));
-                break;
-            }
             String argument = args[i].toLowerCase();
 
-            List<String> keySet = getKeys(current.entrySet());
+            //If the argument is not contained, all keys are verified.
+            if(!contains(current, argument)) {
 
-            //Valid argument
-            if(keySet.contains(argument)) {
+                /*
+                For each key, we retrieve all possible usages.
+                If the key matches with the current argument, all the usages are added to the 'usages' list.
+                 */
 
-                if(i + 1 != args.length) {
-                    current = current.get(argument).getAsJsonObject();
-                    continue;
+                for(Map.Entry<String, JsonElement> entry : current.entrySet()) {
+
+                    String key = entry.getKey();
+
+                    if(!current.get(key).isJsonObject()) break;
+
+                    JsonObject object = current.get(key).getAsJsonObject();
+
+                    List<Usage> list = findAllUsages(sender, object);
+
+                    if(match(key, argument)) usages.addAll(list);
                 }
-                usages.addAll(findAllUsages(current.get(argument).getAsJsonObject()));
-                break;
+
+            } else {
+
+                /*
+                If all the elements have been analyzed, we search all the usages from the current element (one and more).
+                Otherwise, we continue the research by redefining the current object.
+                 */
+
+                if(i + 1 == args.length) {
+
+                    usages.addAll(findAllUsages(sender, current.get(argument).getAsJsonObject()));
+                    i = args.length;
+
+                } else current = current.get(argument).getAsJsonObject();
             }
-            int found = 0;
-            //Invalid argument
-            for(String key : keySet) {
+        }
+        //If no usage was found, all the usages are returned.
+        return usages.size() != 0 ? usages : findAllUsages(sender, current);
+    }
 
-                //Check if startWith
-                if(StringUtil.startsWithIgnoreCase(key, argument) || StringUtil.startsWithIgnoreCase(argument, key)) {
+    private List<Usage> findAllUsages(CommandSender sender, JsonObject object) {
 
-                    usages.addAll(findAllUsages(current.get(key).getAsJsonObject()));
+        List<Usage> usages = new ArrayList<>();
 
-                    found++;
-                    continue;
-                }
+        if(Usage.isUsage(object)) {
 
-                //Check with Levenshtein distance
-                double percentageOfSimilarity = Utils.getPercentageOfSimilarity(key, argument);
+            Usage usage = Usage.deserialize(object);
 
-                if(percentageOfSimilarity >= MIN_SIMILARITY_PERCENTAGE) {
+            if(canExecuteUsage(sender, usage)) usages.add(usage);
 
-                    usages.addAll(findAllUsages(current.get(key).getAsJsonObject()));
+            return usages;
+        }
 
-                    found++;
-                }
-            }
-            //No argument found. Getting all the usages of the current object.
-            if(found == 0) usages.addAll(findAllUsages(current.getAsJsonObject()));
+        for(Map.Entry<String, JsonElement> entry : object.entrySet()) {
 
-            //Stop loop because one of the arguments is invalid
-            break;
+            if(!object.get(entry.getKey()).isJsonObject()) break;
+
+            JsonObject current = object.get(entry.getKey()).getAsJsonObject();
+
+            if(Usage.isUsage(current)) {
+
+                Usage usage = Usage.deserialize(current);
+
+                if(canExecuteUsage(sender, usage)) usages.add(usage);
+
+            } else usages.addAll(findAllUsages(sender, current));
         }
         return usages;
     }
 
-    public List<Usage> findAllUsages(JsonObject object) {
+    private boolean match(String reference, String argument) {
 
-        List<Usage> allUsages = new ArrayList<>();
+        if(StringUtil.startsWithIgnoreCase(reference, argument) || StringUtil.startsWithIgnoreCase(argument, reference))
+            return true;
 
-        if(isUsage(object)) {
-            allUsages.add(getAsUsage(object));
-            return allUsages;
+        double similarityPercentage = Utils.getPercentageOfSimilarity(reference, argument);
+
+        return similarityPercentage >= MIN_SIMILARITY_PERCENTAGE;
+    }
+
+    private boolean canExecuteUsage(CommandSender sender, Usage usage) {
+        return !usage.hasPermission() || sender.hasPermission(usage.getPermission());
+    }
+
+    private boolean contains(JsonObject container, String key) {
+        return container.entrySet().stream().anyMatch(entry -> entry.getKey().equals(key));
+    }
+
+    public List<String> findCompletions(CommandSender sender, SmartCommand command, String[] args) {
+
+        List<String> specialCompletions = new ArrayList<>();
+        List<String> completions = new ArrayList<>();
+
+        JsonObject current = this.container;
+
+        for(int i = 0; i < args.length; i++) {
+
+            if(Usage.isUsage(current)) return completions;
+
+            String argument = args[i].toLowerCase();
+
+            if(!contains(current, argument)) {
+
+                for(Map.Entry<String, JsonElement> entry : current.entrySet()) {
+
+                    String key = entry.getKey();
+
+                    if(isCompletion(key)) {
+
+                        if(!isSpecialCompletion(key)) {
+
+                            if(!StringUtil.startsWithIgnoreCase(key, argument)) continue;
+
+                            List<Usage> usages = findAllUsages(sender, current);
+
+                            boolean canExecute = usages.stream().anyMatch(usage -> canExecuteUsage(sender, usage));
+
+                            if(canExecute) completions.add(key);
+
+                        } else {
+
+                            if(i + 1 == args.length) specialCompletions.addAll(getSpecialCompletions(command, key));
+                            else current = current.get(key).getAsJsonObject();
+                        }
+
+                    } else if(i + 1 != args.length) current = current.get(key).getAsJsonObject();
+                }
+
+            } else current = current.get(argument).getAsJsonObject();
         }
 
-        for(String key : getKeys(object.entrySet())) {
+        if(specialCompletions.size() != 0) completions.addAll(specialCompletions);
 
-            JsonObject current = object.get(key).getAsJsonObject();
+        return completions;
+    }
 
-            if(isUsage(current)) {
-                allUsages.add(getAsUsage(current));
-                continue;
-            }
-            allUsages.addAll(findAllUsages(current));
+    private boolean isCompletion(String str) {
+        return !(str.startsWith("[") && str.endsWith("]"));
+    }
+
+    private boolean isSpecialCompletion(String str) {
+        return str.startsWith("<") && str.endsWith(">");
+    }
+
+    private List<String> getSpecialCompletions(SmartCommand command, String key) {
+
+        if(key.equals("<player>")) {
+
+            List<String> players = new ArrayList<>();
+
+            for(Player player : Bukkit.getOnlinePlayers()) players.add(player.getName());
+
+            return players;
         }
-
-        return allUsages;
-    }
-
-    public Map<String, List<Usage>> getTabCompletes(String[] args) {
-
-        Map<String, List<Usage>> tabCompletes = new HashMap<>();
-
-        JsonObject current = this.object;
-
-        if (isUsage(current)) return tabCompletes;
-
-        for (String arg : args) {
-
-            String argument = arg.toLowerCase();
-
-            if (isUsage(current)) break;
-
-            List<String> keys = getKeys(current.entrySet());
-
-            if (keys.contains(argument)) {
-                current = current.get(argument).getAsJsonObject();
-                continue;
-            }
-
-            for (String key : keys) {
-
-                if (!StringUtil.startsWithIgnoreCase(key, argument)) continue;
-
-                List<Usage> usages = findAllUsages(current.get(key).getAsJsonObject());
-
-                tabCompletes.put(key, usages);
-            }
-        }
-        return tabCompletes;
-    }
-
-    public Usage getAsUsage(JsonObject object) {
-        return SmartCommandsAPI.gson.fromJson(object, Usage.class);
-    }
-
-    public boolean isUsage(JsonObject object) {
-        return object.has("type") && object.get("type").getAsString().equals("Usage.class");
-    }
-
-    private List<String> getKeys(Set<Map.Entry<String, JsonElement>> entries) {
-        List<String> keySet = new ArrayList<>();
-        entries.forEach(entry -> keySet.add(entry.getKey()));
-        return keySet;
+        return command.getCompletions(key);
     }
 }
