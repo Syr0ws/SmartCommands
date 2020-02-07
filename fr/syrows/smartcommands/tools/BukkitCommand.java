@@ -4,14 +4,12 @@ import fr.syrows.smartcommands.commands.CommandContents;
 import fr.syrows.smartcommands.commands.CommandExecutor;
 import fr.syrows.smartcommands.SmartCommand;
 import fr.syrows.smartcommands.commands.issuers.CommandIssuer;
-import fr.syrows.smartcommands.contents.usages.Usage;
 import fr.syrows.smartcommands.utils.Utils;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class BukkitCommand extends Command {
 
@@ -34,14 +32,14 @@ public class BukkitCommand extends Command {
 
         boolean executed = executor.onCommand(this.command, issuer, label, args);
 
-        if(!executed && attributes.hasCommandUsage()) {
+        if(attributes.hasCommandUsage()) {
 
             if(args.length == 2 && args[0].equalsIgnoreCase("help") && Utils.isInt(args[1])) {
 
                 issuer.sendHelp(label, args, Integer.parseInt(args[1]), true);
                 executed = true;
 
-            } else issuer.sendHelp(label, args.length == 0 ? new String[]{""} : args, 1, false);
+            } else if(!executed) issuer.sendHelp(label, args.length == 0 ? new String[]{""} : args, 1, false);
         }
         return executed;
     }
@@ -49,14 +47,20 @@ public class BukkitCommand extends Command {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) throws IllegalArgumentException {
 
-        CommandIssuer issuer = new CommandIssuer(sender, this.command, this);
+        CommandExecutor executor = this.command.getExecutor();
 
+        List<String> completions = new ArrayList<>();
+
+        CommandIssuer issuer = new CommandIssuer(sender, this.command, this);
         CommandContents contents = this.command.getCommandContents();
 
         boolean canTabComplete = this.command.canExecute(issuer.getIssuerType())
                 && command.useTabCompleter() && contents.hasCommandUsage();
 
-        if(canTabComplete) return contents.getCommandUsage().findCompletions(sender, this.command, args);
-        else return super.tabComplete(sender, label, args);
+        if(canTabComplete) completions = contents.getCommandUsage().findCompletions(sender, this.command, args);
+
+        List<String> customCompletions = executor.onTabComplete(command, sender, label, args, completions);
+
+        return customCompletions == null ? completions : customCompletions;
     }
 }
