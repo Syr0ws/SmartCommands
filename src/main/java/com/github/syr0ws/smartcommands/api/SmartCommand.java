@@ -139,7 +139,6 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         }
 
         CommandArgument argument = optionalCommandArgument.get();
-        String path = argument.getPath();
 
         Optional<CommandCallable> optionalCommandCallable = argument.getCallable();
 
@@ -162,15 +161,8 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        // Building arguments map.
-        String[] array = path.split("\\.");
-        Map<String, String> arguments = new HashMap<>();
-
-        for (int i = 0; i < args.length; i++) {
-            arguments.put(args[i].toLowerCase(), array[i]);
-        }
-
         // Invoking the command.
+        Map<String, String> arguments = this.getArgumentValues(argument, args);
         CommandExecutionContext context = new CommandExecutionContext(sender, label, arguments);
 
         try {
@@ -178,6 +170,33 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         } catch (CommandCallException exception) {
             exception.printStackTrace();
         }
+    }
+
+    /**
+     * Build a map with argument name as keys and their corresponding value entered by the player as values.
+     *
+     * @param argument the argument corresponding to the command executed
+     * @param args the arguments entered by the player
+     * @return a map of arguments with their corresponding value
+     */
+    private Map<String, String> getArgumentValues(CommandArgument argument, String[] args) {
+
+        String path = argument.getPath();
+        String[] array = path.split("\\.");
+
+        Map<String, String> arguments = new HashMap<>();
+
+        for (int i = 0; i < args.length; i++) {
+
+            // Using i+1 because the path contains the root (command name), which is not the case in args.
+            String pathArgument = array[i+1];
+
+            if(DynamicCommandArgument.isDynamicArgument(pathArgument)) {
+                arguments.put(pathArgument, args[i]);
+            }
+        }
+
+        return arguments;
     }
 
     /**
