@@ -59,7 +59,7 @@
                             <relocations>
                                 <relocation>
                                     <pattern>com.github.syr0ws.crafter</pattern>
-                                    <shadedPattern>com.github.syr0ws.smartcommands.internal.util</shadedPattern>
+                                    <shadedPattern>com.github.syr0ws.smartcommands.internal.util.crafter</shadedPattern>
                                 </relocation>
                             </relocations>
                         </configuration>
