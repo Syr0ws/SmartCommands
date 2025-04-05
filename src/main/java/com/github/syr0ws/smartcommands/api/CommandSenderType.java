@@ -9,10 +9,14 @@ import org.bukkit.entity.Player;
  */
 public enum CommandSenderType {
 
-    /** Represents a console sender. */
+    /**
+     * Represents a console sender.
+     */
     CONSOLE,
 
-    /** Represents a player sender. */
+    /**
+     * Represents a player sender.
+     */
     PLAYER;
 
     /**

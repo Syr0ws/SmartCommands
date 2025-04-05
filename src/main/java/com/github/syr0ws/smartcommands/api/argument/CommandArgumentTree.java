@@ -43,7 +43,7 @@ public interface CommandArgumentTree {
      * Associates a {@link DynamicArgumentValueProvider} with a specific argument path.
      * This provider is used to dynamically resolve values for the specified argument.
      *
-     * @param path the dot-delimited path of the argument
+     * @param path     the dot-delimited path of the argument
      * @param provider the provider to associate with the argument
      */
     void addArgumentValueProvider(String path, DynamicArgumentValueProvider provider);

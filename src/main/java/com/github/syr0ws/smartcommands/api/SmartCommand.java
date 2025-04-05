@@ -31,15 +31,15 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
      * Called when a command is not found. Implement this method to handle cases where the command sent by the player is invalid.
      *
      * @param sender the sender who executed the command
-     * @param label the command label used
-     * @param args the arguments passed with the command
+     * @param label  the command label used
+     * @param args   the arguments passed with the command
      */
     public abstract void onCommandNotFound(CommandSender sender, String label, String[] args);
 
     /**
      * Called when the sender does not have the required {@link CommandSenderType} to execute the command.
      *
-     * @param sender the sender who executed the command
+     * @param sender  the sender who executed the command
      * @param command the corresponding command
      */
     public abstract void onNotAllowedSenderType(CommandSender sender, Command command);
@@ -47,7 +47,7 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
     /**
      * Called when the sender does not have the required permission to execute the command.
      *
-     * @param sender the sender who executed the command
+     * @param sender  the sender who executed the command
      * @param command the corresponding command
      */
     public abstract void onNoPermission(CommandSender sender, Command command);
@@ -122,8 +122,8 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
      * Executes the command based on the sender input.
      *
      * @param sender the sender who executed the command
-     * @param label the command label
-     * @param args the arguments passed with the command
+     * @param label  the command label
+     * @param args   the arguments passed with the command
      */
     public void call(CommandSender sender, String label, String[] args) {
         Validate.notNull(sender, "sender cannot be null");
@@ -152,12 +152,12 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         CommandCallable callable = optionalCommandCallable.get();
 
         // Checking that the sender is allowed to execute the command.
-        if(!callable.isAllowedSender(sender)) {
+        if (!callable.isAllowedSender(sender)) {
             this.onNotAllowedSenderType(sender, callable.command());
             return;
         }
 
-        if(!callable.hasPermission(sender)) {
+        if (!callable.hasPermission(sender)) {
             this.onNoPermission(sender, callable.command());
             return;
         }
@@ -166,7 +166,7 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         String[] array = path.split("\\.");
         Map<String, String> arguments = new HashMap<>();
 
-        for(int i = 0; i < args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             arguments.put(args[i].toLowerCase(), array[i]);
         }
 
@@ -184,7 +184,7 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
      * Provides tab completion suggestions based on the sender input.
      *
      * @param sender the sender requesting tab completion
-     * @param args the arguments passed with the command
+     * @param args   the arguments passed with the command
      * @return a list of completion suggestions
      */
     public List<String> getCompletions(CommandSender sender, String[] args) {
@@ -196,7 +196,7 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         Optional<CommandArgument> optional = this.tree.getArgument(argsWithoutLast);
 
         // The path of arguments cannot be matched to a node.
-        if(optional.isEmpty()) {
+        if (optional.isEmpty()) {
             return Collections.emptyList();
         }
 
@@ -205,7 +205,7 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
         // Providing completions.
         List<String> completions = new ArrayList<>();
 
-        for(CommandArgument child : argument.getChildren()) {
+        for (CommandArgument child : argument.getChildren()) {
 
             // Checking that there is at least one command that the sender has access to in the child hierarchy
             // to provide autocompletion.
@@ -214,14 +214,14 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
             boolean hasPermission = callables.stream()
                     .anyMatch(commandCallable -> commandCallable.canCall(sender));
 
-            if(!hasPermission) {
+            if (!hasPermission) {
                 continue;
             }
 
             // Providing autocompletion if possible.
-            if(child instanceof DynamicCommandArgument dynamicArgument) {
+            if (child instanceof DynamicCommandArgument dynamicArgument) {
                 this.addDynamicCompletions(sender, completions, dynamicArgument, lastArg);
-            } else if(child.getName().startsWith(lastArg) && !completions.contains(child.getName())) {
+            } else if (child.getName().startsWith(lastArg) && !completions.contains(child.getName())) {
                 completions.add(child.getName());
             }
         }
@@ -232,17 +232,17 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
     /**
      * Adds dynamic completions for the given argument if a provider is available.
      *
-     * @param sender the sender requesting completion
+     * @param sender      the sender requesting completion
      * @param completions the list of current completions
-     * @param argument the dynamic argument
-     * @param inputArg the current input argument
+     * @param argument    the dynamic argument
+     * @param inputArg    the current input argument
      */
     private void addDynamicCompletions(CommandSender sender, List<String> completions, DynamicCommandArgument argument, String inputArg) {
 
         Optional<DynamicArgumentValueProvider> optional = argument.getProvider();
 
         // The dynamic argument does not have any provider so not completions can be proposed.
-        if(optional.isEmpty()) {
+        if (optional.isEmpty()) {
             return;
         }
 

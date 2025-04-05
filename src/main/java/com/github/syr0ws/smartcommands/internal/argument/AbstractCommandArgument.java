@@ -4,8 +4,10 @@ import com.github.syr0ws.crafter.util.Validate;
 import com.github.syr0ws.smartcommands.api.CommandCallable;
 import com.github.syr0ws.smartcommands.api.argument.CommandArgument;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
 
 public abstract class AbstractCommandArgument implements CommandArgument {
 
@@ -50,10 +52,6 @@ public abstract class AbstractCommandArgument implements CommandArgument {
                 .findFirst();
     }
 
-    public void setCallable(CommandCallable callable) {
-        this.callable = callable;
-    }
-
     @Override
     public String getName() {
         return this.name;
@@ -67,6 +65,10 @@ public abstract class AbstractCommandArgument implements CommandArgument {
     @Override
     public Optional<CommandCallable> getCallable() {
         return Optional.ofNullable(this.callable);
+    }
+
+    public void setCallable(CommandCallable callable) {
+        this.callable = callable;
     }
 
     @Override
@@ -84,11 +86,11 @@ public abstract class AbstractCommandArgument implements CommandArgument {
 
         Set<CommandCallable> callables = new HashSet<>();
 
-        if(this.callable != null) {
+        if (this.callable != null) {
             callables.add(this.callable);
         }
 
-        for(AbstractCommandArgument child : this.children) {
+        for (AbstractCommandArgument child : this.children) {
             callables.addAll(child.getChildCommands());
         }
 
