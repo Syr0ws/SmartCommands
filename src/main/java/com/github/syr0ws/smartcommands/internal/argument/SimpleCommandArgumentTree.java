@@ -2,11 +2,10 @@ package com.github.syr0ws.smartcommands.internal.argument;
 
 import com.github.syr0ws.crafter.util.Validate;
 import com.github.syr0ws.smartcommands.api.CommandCallable;
+import com.github.syr0ws.smartcommands.api.SmartCommand;
 import com.github.syr0ws.smartcommands.api.argument.CommandArgument;
 import com.github.syr0ws.smartcommands.api.argument.CommandArgumentTree;
 import com.github.syr0ws.smartcommands.api.argument.DynamicArgumentValueProvider;
-import com.github.syr0ws.smartcommands.api.Command;
-import com.github.syr0ws.smartcommands.api.SmartCommand;
 import com.github.syr0ws.smartcommands.api.exception.InvalidCommandMethodException;
 
 import java.util.Optional;
