@@ -14,6 +14,7 @@ import org.bukkit.command.TabCompleter;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Abstract base class for handling commands with dynamic routing and auto-completion.
@@ -228,7 +229,10 @@ public abstract class SmartCommand implements CommandExecutor, TabCompleter {
 
             // Checking that there is at least one command that the sender has access to in the child hierarchy
             // to provide autocompletion.
-            Set<CommandCallable> callables = child.getChildCommands();
+            Set<CommandCallable> callables = child.getChildCommands().stream()
+                    // Only retrieving commands that can be auto-completed.
+                    .filter(callable -> callable.command().autoComplete())
+                    .collect(Collectors.toSet());
 
             boolean hasPermission = callables.stream()
                     .anyMatch(commandCallable -> commandCallable.canCall(sender));
