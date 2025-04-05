@@ -34,4 +34,11 @@ public @interface Command {
      * @return the required permission string, or an empty string if none is required
      */
     String permission() default "";
+
+    /**
+     * Specifies whether the command should be auto-completed or not.
+     *
+     * @return {@code true} if the command should be auto-completed; {@code false} otherwise
+     */
+    boolean autoComplete() default true;
 }
